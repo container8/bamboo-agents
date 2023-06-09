@@ -1,0 +1,88 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+#################
+# Initial Setup #
+#################
+sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+systemctl restart ssh
+
+USER_ID=1000
+GROUP_ID=1000
+groupadd -g $${GROUP_ID} user
+useradd -m -u $${USER_ID} -g $${GROUP_ID} -s /bin/bash user
+mkdir -p /home/user/.ssh/
+cp /root/.ssh/authorized_keys /home/user/.ssh/authorized_keys
+chown --recursive $${USER_ID}:$${GROUP_ID} /home/user/.ssh/
+echo "user ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+apt-get update
+apt-get install -y ca-certificates curl gnupg lsb-release make
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+docker run hello-world
+
+usermod -aG docker user
+
+#############################
+# Bamboo Agent Installation #
+#############################
+
+export AGENT_HOME=/opt/docker/bamboo-agents
+export AGENT_CONFIG_HOME=$${AGENT_HOME}/config
+mkdir -p $${AGENT_HOME}
+mkdir -p $${AGENT_HOME}/.docker
+mkdir -p $${AGENT_CONFIG_HOME}
+
+echo "${DOCKER_CONFIG_JSON}" > $${AGENT_HOME}/.docker/config.json
+echo "${XALT_TECHNICAL_ASSISTANT_ID_RSA}" > $${AGENT_HOME}/.ssh-keys/xalt-technical-assistant
+echo "${CONTAINER_DEMO_ID_RSA}" > $${AGENT_HOME}/.ssh-keys/container-demo/id_rsa
+
+%{ for bamboo_agent in bamboo_agents ~}
+cat > $${AGENT_CONFIG_HOME}/bamboo-agent.cfg.xml.${bamboo_agent.id} <<EOF
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+<buildWorkingDirectory>/var/atlassian/bamboo-agent/xml-data/build-dir</buildWorkingDirectory>
+<agentUuid>${bamboo_agent.uuid}</agentUuid>
+<agentDefinition>
+<id>${bamboo_agent.id}</id>
+<name>${bamboo_agent.name}</name>
+<description>CISA dedicated agent on a hetzner VM in the US region</description>
+</agentDefinition>
+</configuration>
+EOF
+%{ endfor ~}
+
+cat > $${AGENT_HOME}/docker-compose.yml <<EOF
+version: '3'
+services:
+%{ for bamboo_agent in bamboo_agents ~}
+  bambooAgentDocker${bamboo_agent.id}:
+    image: ${bamboo_agent.docker_image}
+    environment:
+      - BAMBOO_SERVER=${bamboo_agent.bamboo_server}
+      - RAM_MIN=${bamboo_agent.ram_min}
+      - RAM_MAX=${bamboo_agent.ram_max}
+      - TIME_ZONE=${bamboo_agent.time_zone}
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker:/var/run/docker
+      - /opt/docker:/opt/docker
+      - /var/atlassian/bamboo-agent/temp:/var/atlassian/bamboo-agent/temp
+      - /var/atlassian/bamboo-agent/xml-data/build-dir:/var/atlassian/bamboo-agent/xml-data/build-dir
+      - ./config/bamboo-agent.cfg.xml.${bamboo_agent.id}:/var/atlassian/bamboo-agent/bamboo-agent.cfg.xml:ro
+      - ./.docker:/root/.docker
+      - ./.ssh-keys:/root/.ssh-keys
+      - ./data:/root/data
+      - /etc/hostname:/etc/hostname_mounted
+%{ endfor ~}
+EOF
+
+cd $${AGENT_HOME}
+docker compose up -d
