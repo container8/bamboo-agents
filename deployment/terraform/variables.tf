@@ -9,6 +9,7 @@ variable "server" {
     name         = string
     image        = string
     type         = string
+    datacenter   = string
     ipv4_enabled = bool
     ipv6_enabled = bool
   })

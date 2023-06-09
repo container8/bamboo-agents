@@ -3,6 +3,7 @@ server = {
   image = "ubuntu-22.04"
   # 16.18 euros per month
   type         = "cpx31"
+  datacenter   = "hil-dc1"
   ipv4_enabled = true
   ipv6_enabled = false
 }

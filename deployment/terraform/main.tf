@@ -2,6 +2,7 @@ resource "hcloud_server" "main" {
   name        = var.server.name
   image       = var.server.image
   server_type = var.server.type
+  datacenter  = var.server.datacenter
   public_net {
     ipv4_enabled = var.server.ipv4_enabled
     ipv6_enabled = var.server.ipv6_enabled
