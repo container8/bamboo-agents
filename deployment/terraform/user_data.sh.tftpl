@@ -39,6 +39,9 @@ mkdir -p $${AGENT_HOME}
 mkdir -p $${AGENT_HOME}/.docker
 mkdir -p $${AGENT_CONFIG_HOME}
 
+mkdir -p $${AGENT_HOME}/.docker/
+mkdir -p $${AGENT_HOME}/.ssh-keys/
+mkdir -p $${AGENT_HOME}/.ssh-keys/container-demo/
 echo "${DOCKER_CONFIG_JSON}" > $${AGENT_HOME}/.docker/config.json
 echo "${XALT_TECHNICAL_ASSISTANT_ID_RSA}" > $${AGENT_HOME}/.ssh-keys/xalt-technical-assistant
 echo "${CONTAINER_DEMO_ID_RSA}" > $${AGENT_HOME}/.ssh-keys/container-demo/id_rsa
