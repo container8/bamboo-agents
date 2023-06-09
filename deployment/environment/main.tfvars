@@ -15,9 +15,9 @@ ssh_key = {
 
 bamboo_agents = [
   {
-    uuid          = "00000000-0000-1001-0000-000000000001"
-    id            = "1001"
-    name          = "cisa-agent01"
+    uuid          = "00000000-0000-1001-1001-000000000001"
+    id            = "10011001"
+    name          = "automated-cisa-agent01"
     docker_image  = "xalt/bamboo-agent:BLI-413"
     bamboo_server = "https://bamboo.xalt.team"
     ram_min       = 256
