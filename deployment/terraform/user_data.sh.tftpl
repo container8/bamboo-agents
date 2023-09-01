@@ -72,6 +72,7 @@ services:
       - RAM_MIN=${bamboo_agent.ram_min}
       - RAM_MAX=${bamboo_agent.ram_max}
       - TIME_ZONE=${bamboo_agent.time_zone}
+      - CAPABILITY_CISA=true
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
